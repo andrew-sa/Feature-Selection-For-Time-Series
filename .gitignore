@@ -1,1 +1,7 @@
 .idea/
+
+AllFeatures/
+
+RelevantFeatures/
+
+*/__pycache__/
