@@ -1,7 +1,9 @@
 .idea/
 
-AllFeatures/
+.vscode/
 
-RelevantFeatures/
+Pickle/
 
 */__pycache__/
+
+*.log
