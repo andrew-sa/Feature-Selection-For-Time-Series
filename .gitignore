@@ -6,4 +6,6 @@ Pickle/
 
 */__pycache__/
 
+LogFiles/
+
 *.log
