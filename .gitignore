@@ -9,3 +9,5 @@ Pickle/
 LogFiles/
 
 *.log
+
+skfeature/example/
