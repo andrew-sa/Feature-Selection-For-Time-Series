@@ -21,8 +21,10 @@ def testFeatureSelection(dataset, X_selected, X_test, n_clusters, y):
         new_nmi_score, new_silhouette_score, new_davies_bouldin_score, new_calinski_harabasz_score, new_purity = evaluation(
             X_selected = X_selected, X_test = X_test, n_clusters = n_clusters, y = y)
 
-        if (new_nmi_score >= nmi_score and new_silhouette_score >= silhouette_score 
-        and new_davies_bouldin_score <= davies_bouldin_score and new_calinski_harabasz_score >= calinski_harabasz_score 
+        if (new_nmi_score >= nmi_score
+        and new_silhouette_score >= silhouette_score 
+        and new_davies_bouldin_score <= davies_bouldin_score 
+        and new_calinski_harabasz_score >= calinski_harabasz_score 
         and new_purity >= purity):
             nmi_score = new_nmi_score
             silhouette_score = new_silhouette_score
@@ -30,11 +32,11 @@ def testFeatureSelection(dataset, X_selected, X_test, n_clusters, y):
             calinski_harabasz_score = new_calinski_harabasz_score
             purity = new_purity
 
-    logger.info('NMI score: {0}'.format(nmi_score), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Silhouette score: {0}'.format(silhouette_score), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Davies Bouldin score: {0}'.format(davies_bouldin_score), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Calinski Harabasz score: {0}'.format(calinski_harabasz_score), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Purity: {0}'.format(purity), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('NMI score: {0}'.format(float(round(nmi_score, 5))), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('Silhouette score: {0}'.format(float(round(silhouette_score, 5))), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('Davies Bouldin score: {0}'.format(float(round(davies_bouldin_score, 5))), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('Calinski Harabasz score: {0}'.format(float(round(calinski_harabasz_score, 5))), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('Purity: {0}'.format(float(round(purity, 5))), extra = LOGGER_EXTRA_OBJECT)
     logger.info('END [MCFS Features Selection] {0}'.format(dataset), extra = LOGGER_EXTRA_OBJECT)
 
 
@@ -46,8 +48,8 @@ def selectFeatures(dataset, features_number, clusters_number):
     all_features_train = pd.read_pickle('../Pickle/AllFeatures/Train/{0}.pkl'.format(dataset))
     all_features_test = pd.read_pickle('../Pickle/AllFeatures/Test/{0}.pkl'.format(dataset))
 
-    logger.info('All train features number: {0}'.format(all_features_train.shape), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('All test features number: {0}'.format(all_features_test.shape), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('All features trainset shape: {0}'.format(all_features_train.shape), extra = LOGGER_EXTRA_OBJECT)
+    logger.info('All features testset shape: {0}'.format(all_features_test.shape), extra = LOGGER_EXTRA_OBJECT)
 
     # np.savetxt(r'testDataFrame.txt', all_features_test.values, fmt='%d')
 
@@ -143,4 +145,5 @@ def selectFeatures(dataset, features_number, clusters_number):
     logger.info('END [ALL TSFRESH Features] {0}'.format(dataset), extra = LOGGER_EXTRA_OBJECT)
 '''
 
-selectFeatures('FordB', 10, 2)
+# Testing
+selectFeatures('TwoPatterns', 20, 4)

@@ -10,4 +10,8 @@ LogFiles/
 
 *.log
 
-skfeature/
+skfeature/example
+
+skfeature/similarity_based
+
+skfeature/statistical_based
