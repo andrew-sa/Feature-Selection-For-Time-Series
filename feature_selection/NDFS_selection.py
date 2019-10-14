@@ -8,12 +8,15 @@ import sklearn.cluster
 from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score, normalized_mutual_info_score, confusion_matrix
 from skfeature.function.sparse_learning_based import NDFS
 from skfeature.utility import construct_W, sparse_learning
+from utils.labels_extraction import known_labels_extractor
+from utils.evaluation import evaluation
 # from utility import valutazione, estrattoreClassiConosciute
 import collections
+from skfeature.utility.sparse_learning import feature_ranking
 
-'''
+
 def testFeatureSelection(X_selected, X_test, num_clusters, y):
-    new_nmi, new_sil, new_db_score, new_ch_score, new_purity = valutazione.evaluation(
+    new_nmi, new_sil, new_db_score, new_ch_score, new_purity = evaluation.evaluation(
             X_selected=X_selected, X_test=X_test, n_clusters=num_clusters, y=y)
     nmi = new_nmi
     sil = new_sil
@@ -22,7 +25,7 @@ def testFeatureSelection(X_selected, X_test, num_clusters, y):
     purity = new_purity
 
     for i in range(0, 20):
-        new_nmi, new_sil, new_db_score, new_ch_score, new_purity = valutazione.evaluation(
+        new_nmi, new_sil, new_db_score, new_ch_score, new_purity = evaluation.evaluation(
             X_selected=X_selected, X_test=X_test, n_clusters=num_clusters, y=y)
         if(new_nmi > nmi and new_sil > sil and new_db_score < db_score and new_purity > purity and new_ch_score > ch_score):
             nmi = new_nmi
@@ -37,13 +40,12 @@ def testFeatureSelection(X_selected, X_test, num_clusters, y):
     print('Calinski-Harabasz index score:', float(round(((ch_score)), 4)))
     print('NMI:', float(round(((nmi)), 4)))
     print('Purity:', float(round(((purity)), 4)))
-'''
     
 def selectFeatureNDFS(dataset, num_feature, num_cluster):
 
     # Recupero del pickle salvato su disco con i sample e TUTTE le feature estratte da TSFresh. SU QUESTO LAVOREREMO NOI
     all_features_train = pd.read_pickle('../Pickle/AllFeatures/Train/{0}.pkl'.format(dataset))
-    all_features_test = pd.read_pickle('../Pickle/RelevantFeatures/Test/{0}.pkl'.format(dataset))
+    all_features_test = pd.read_pickle('../Pickle/AllFeatures/Test/{0}.pkl'.format(dataset))
 
     print(all_features_train.shape[1])
 
@@ -65,6 +67,7 @@ def selectFeatureNDFS(dataset, num_feature, num_cluster):
 
         # Esecuzione dell'algoritmo NDFS. Otteniamo il peso delle feature per cluster.
         featurePesate = NDFS.ndfs(all_features_train, n_clusters=20, W=W)
+        np.savetxt(r'testNDFS.txt', featurePesate, fmt='%d')
 
         # ordinamento delle feature in ordine discendente
         idx = feature_ranking(featurePesate)
@@ -85,7 +88,7 @@ def selectFeatureNDFS(dataset, num_feature, num_cluster):
     # Qui abbiamo un dizionario contenente tupla (nomeFeature, numeroOccorrenze)
     dizionarioOccorrenzeFeature_sorted = sorted(dizionarioOccorrenzeFeature.items(), key=lambda kv: -kv[1])
     print(dizionarioOccorrenzeFeature_sorted)
-    '''
+    
     # Metto tutti in nomi delle feature presenti in nel dizionario in un array
     featureFrequenti = []
     for key, value in dizionarioOccorrenzeFeature_sorted:
@@ -107,14 +110,13 @@ def selectFeatureNDFS(dataset, num_feature, num_cluster):
     all_features_test = all_features_test.loc[:, nomiFeatureSelezionate]
 
     # Estraggo le classi conosciute
-    labelConosciute = estrattoreClassiConosciute.estraiLabelConosciute(
-        "./UCRArchive_2018/{0}/{0}_TEST.tsv".format(filename))
+    labelConosciute = known_labels_extractor.extract_known_labels('../Datasets/{0}/{0}_TEST.tsv'.format(dataset))
 
     # K-means su feature selezionate
     print("\nRisultati con feature selezionate da noi con NDFS")
     print("Numero feature: {0}".format(all_features_test.shape[1]))
     testFeatureSelection(X_selected=dataframeFeatureSelezionate.values,
                         X_test=all_features_test.values, num_clusters=num_cluster, y=labelConosciute)
-    '''
 
-selectFeatureNDFS('FordB', 10, 2)
+# Testing
+selectFeatureNDFS('TwoPatterns', 20, 4)

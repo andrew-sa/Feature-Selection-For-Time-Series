@@ -9,9 +9,3 @@ Pickle/
 LogFiles/
 
 *.log
-
-skfeature/example
-
-skfeature/similarity_based
-
-skfeature/statistical_based

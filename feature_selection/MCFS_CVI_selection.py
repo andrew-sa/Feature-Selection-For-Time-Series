@@ -2,48 +2,62 @@ import os
 import sys
 sys.path.append(os.path.abspath('..'))
 
-from logs.result_log import logger
+from logs.app_log import logger as app_logger
+from skfeature.utility import construct_W, sparse_learning
+from skfeature.function.sparse_learning_based import MCFS
 from utils.labels_extraction import known_labels_extractor
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_classif
 from sklearn.ensemble import ExtraTreesClassifier
-from utils.evaluation.evaluation import evaluation
+from feature_selection import test_feature_selection
 import pandas as pd
 import numpy as np
 
 LOGGER_EXTRA_OBJECT = {'caller_absolutepathname': os.path.abspath(__file__)}
 
-def testFeatureSelection(dataset, X_selected, X_test, n_clusters, y):
+def select(dataset, features_number, clusters_number):
 
-    nmi_score, silhouette_score, davies_bouldin_score, calinski_harabasz_score, purity = evaluation(
-        X_selected = X_selected, X_test = X_test, n_clusters = n_clusters, y = y)
+    app_logger.info('STARTED [MCFS-CVI Selection] on {0} with features number = {1}'.format(dataset, features_number), extra = LOGGER_EXTRA_OBJECT)
 
-    for i in range(0, 20):
-        new_nmi_score, new_silhouette_score, new_davies_bouldin_score, new_calinski_harabasz_score, new_purity = evaluation(
-            X_selected = X_selected, X_test = X_test, n_clusters = n_clusters, y = y)
-
-        if (new_nmi_score >= nmi_score
-        and new_silhouette_score >= silhouette_score 
-        and new_davies_bouldin_score <= davies_bouldin_score 
-        and new_calinski_harabasz_score >= calinski_harabasz_score 
-        and new_purity >= purity):
-            nmi_score = new_nmi_score
-            silhouette_score = new_silhouette_score
-            davies_bouldin_score = new_davies_bouldin_score
-            calinski_harabasz_score = new_calinski_harabasz_score
-            purity = new_purity
-
-    logger.info('NMI score: {0}'.format(float(round(nmi_score, 5))), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Silhouette score: {0}'.format(float(round(silhouette_score, 5))), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Davies Bouldin score: {0}'.format(float(round(davies_bouldin_score, 5))), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Calinski Harabasz score: {0}'.format(float(round(calinski_harabasz_score, 5))), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('Purity: {0}'.format(float(round(purity, 5))), extra = LOGGER_EXTRA_OBJECT)
-    logger.info('END [MCFS Features Selection] {0}'.format(dataset), extra = LOGGER_EXTRA_OBJECT)
-
-def test(dataset, features_number, clusters_number):
     # Retrieving all feature extracted by tsfresh from the pickles on the disk
     all_features_train = pd.read_pickle('../Pickle/AllFeatures/Train/{0}.pkl'.format(dataset))
     all_features_test = pd.read_pickle('../Pickle/AllFeatures/Test/{0}.pkl'.format(dataset))
+
+    app_logger.info('All features trainset shape: {0}'.format(all_features_train.shape), extra = LOGGER_EXTRA_OBJECT)
+    app_logger.info('All features testset shape: {0}'.format(all_features_test.shape), extra = LOGGER_EXTRA_OBJECT)
+
+    # Building matrix W for MCFS algorithm
+    kwargs = {
+        'metric': 'euclidean',
+        'neighbor_mode': 'knn',
+        'weight_mode': 'heat_kernel',
+        'k': 5,
+        't': 1
+    }
+    W = construct_W.construct_W(all_features_train.values, **kwargs)
+
+    # MCFS gives a weight to each features
+    kwargs = {
+        'W': W,
+        'n_clusters': clusters_number
+    }
+    weighted_features = MCFS.mcfs(all_features_train.values, features_number, **kwargs)
+
+    # Ordering the features according to their weight
+    ordered_features = MCFS.feature_ranking(weighted_features)
+    print(ordered_features)
+    dfmcfs = pd.DataFrame(ordered_features, columns = ['feature_index'])
+    length = len(ordered_features)
+    dfmcfs['mcfs'] = range(length, 0, -1)
+
+    # Reducing all columns in [0, 1] range
+    new_max = 1
+    new_min = 0
+    new_range = new_max - new_min
+    # Converting Variance column
+    m_old_max = dfmcfs[['mcfs']].max()
+    m_old_min = dfmcfs[['mcfs']].min()
+    m_old_range = m_old_max - m_old_min
+    dfmcfs[['mcfs']] = (((dfmcfs[['mcfs']] - m_old_min) * new_range) / m_old_range) + new_min
+    print(dfmcfs)
 
     # Selecting indipendent columns and the target column of the set
     indipendent_columns = all_features_train
@@ -70,10 +84,6 @@ def test(dataset, features_number, clusters_number):
     dfscores.columns = ['feature_name', 'variance', 'importance', 'target_corr']
     dfscores = dfscores.dropna(axis = 0)
     
-    # Reducing all columns in [0, 1] range
-    new_max = 1
-    new_min = 0
-    new_range = new_max - new_min
     # Converting Variance column
     v_old_max = dfscores[['variance']].max()
     v_old_min = dfscores[['variance']].min()
@@ -83,26 +93,34 @@ def test(dataset, features_number, clusters_number):
     # Converting Corr column
     dfscores[['target_corr']] = abs(dfscores[['target_corr']])
 
-    # Calculating the average of the three scores
+    # Calculating the weighted average of the three scores
     # dfscores['average'] = dfscores[['variance', 'importance', 'target_corr']].mean(axis=1)
     dfscores['weighted_average'] = 0.20 * dfscores['variance'] + 0.10 * dfscores['importance'] + 0.70 * dfscores['target_corr']
-    dfscores = dfscores.sort_values(by='weighted_average', ascending=False)
-    print(dfscores)
+    #To convert weighted_avarege!!!
 
-    top_k_scores = dfscores.head(features_number)
-    print(top_k_scores)
+    # Merge dfmcfs and dfscores
+    df = pd.concat([dfscores, dfmcfs.set_index('feature_index')], axis=1)
+    df = df.dropna(axis = 0)
+    df['value'] = 0.5 * df['target_corr'] + 0.5 * df['mcfs']
+    df = df.sort_values(by='value', ascending=False)
+    print(df)
 
+    top_k_scores = df.head(features_number)
+    app_logger.info(top_k_scores, extra = LOGGER_EXTRA_OBJECT)
 
     selected_features_names = top_k_scores['feature_name'].values
     selected_features_train = all_features_train.loc[:, selected_features_names]
-    # print(selected_features_train.columns)
     selected_features_test = all_features_test.loc[:, selected_features_names]
 
     # Retrieving known labels of the test set
     known_labels = known_labels_extractor.extract_known_labels('../Datasets/{0}/{0}_TEST.tsv'.format(dataset))
 
     # Running k-means according to selected features
-    testFeatureSelection(dataset, selected_features_train.values, selected_features_test.values, clusters_number, known_labels)
+    test_feature_selection.testFeatureSelectionWithRepeatedKMeans('MCFS-CVI', features_number, dataset, 
+        selected_features_train.values, selected_features_test.values, clusters_number, known_labels)
+
+    app_logger.info('ENDED [MCFS-CVI Selection] on {0}'.format(dataset), extra = LOGGER_EXTRA_OBJECT)
 
 
-test("TwoPatterns", 10, 4)
+# Testing
+select('TwoPatterns', 10, 4)
