@@ -1,9 +1,16 @@
+import os
+import sys
+sys.path.append(os.path.abspath('..'))
+
+from logs.app_log import logger as app_logger
 import numpy as np
 # import sklearn.utils.linear_assignment_ as la
 # from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics.cluster import normalized_mutual_info_score, silhouette_score, davies_bouldin_score, calinski_harabasz_score, contingency_matrix
 from sklearn.cluster import KMeans
+
+LOGGER_EXTRA_OBJECT = {'caller_absolutepathname': os.path.abspath(__file__)}
 
 '''
 def best_map(l1, l2):
@@ -68,18 +75,30 @@ def evaluation(X_selected, X_test, n_clusters, y):
 
     k_means.fit(X_selected)
     y_predict = k_means.predict(X_test)
-
+    
     # calculate NMI
     nmi = normalized_mutual_info_score(y, y_predict, average_method='arithmetic')
 
     # calculate Silhouette score
-    sil = silhouette_score(X_test, y_predict, metric='euclidean')
+    try:
+        sil = silhouette_score(X_test, y_predict, metric='euclidean')
+    except ValueError:
+        sil = float('nan')
+        app_logger.warning('K-means lables are {0}; but y_predict are: {1}. Silhouette score requires predicts in 2 or more clusters.'.format(np.unique(k_means.labels_), np.unique(y_predict)), extra = LOGGER_EXTRA_OBJECT)
 
-    # calculate Davies Bouldin score
-    db = davies_bouldin_score(X_test, y_predict)
+    # calculate Davies Bouldin 
+    try:
+        db = davies_bouldin_score(X_test, y_predict)
+    except ValueError:
+        db = float('nan')
+        app_logger.warning('K-means lables are {0}; but y_predict are: {1}. Davies Bouldin score requires predicts in 2 or more clusters.'.format(np.unique(k_means.labels_), np.unique(y_predict)), extra = LOGGER_EXTRA_OBJECT)
 
     # calculate Calinski Harabasz score
-    ch = calinski_harabasz_score(X_test, y_predict)
+    try:
+        ch = calinski_harabasz_score(X_test, y_predict)
+    except ValueError:
+        ch = float('nan')
+        app_logger.warning('K-means lables are {0}; but y_predict are: {1}. Calinski Harabasz score requires predicts in 2 or more clusters.'.format(np.unique(k_means.labels_), np.unique(y_predict)), extra = LOGGER_EXTRA_OBJECT)
 
     # calculate Purity
     pur = purity(y, y_predict)

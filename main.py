@@ -1,7 +1,7 @@
 import os
 import sys
 
-from feature_selection import all_tsfresh_selection, relevent_tsfresh_selection, MCFS_selection, CVI_selection
+from feature_selection import all_tsfresh_selection, relevent_tsfresh_selection, MCFS_selection, corr_selection, feature_agglomeration
 
 from logs.app_log import logger as app_logger
 
@@ -21,15 +21,16 @@ CLUSTERS_NUMBERS = {
 
 def main(): 
     dataset = sys.argv[1]
-    feature_number = int(sys.argv[2])
+    features_number = int(sys.argv[2])
     clusters_number = CLUSTERS_NUMBERS[dataset]
 
-    app_logger.info('STARTED {0} with {1} features'.format(dataset, feature_number), extra = LOGGER_EXTRA_OBJECT)
-    all_tsfresh_features.select(dataset, clusters_number)
-    relevent_tsfresh_features.select(dataset, clusters_number)
-    MCFS_features.select(dataset, features_number, clusters_number)
-    CVI_features.select(dataset, features_number, clusters_number)
-    app_logger.info('ENDED {0} with {1} features'.format(dataset, feature_number), extra = LOGGER_EXTRA_OBJECT)
+    app_logger.info('STARTED {0} with {1} selected features'.format(dataset, features_number), extra = LOGGER_EXTRA_OBJECT)
+    all_tsfresh_selection.select(dataset, clusters_number)
+    relevent_tsfresh_selection.select(dataset, clusters_number)
+    MCFS_selection.select(dataset, features_number, clusters_number)
+    feature_agglomeration.agglomerate(dataset, features_number, clusters_number)
+    corr_selection.select(dataset, features_number, clusters_number)
+    app_logger.info('ENDED {0} with {1} selected features'.format(dataset, features_number), extra = LOGGER_EXTRA_OBJECT)
 
 if __name__ == '__main__':
     main()

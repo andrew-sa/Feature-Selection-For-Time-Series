@@ -2,10 +2,12 @@
 
 .vscode/
 
-Pickle/
-
 */__pycache__/
 
 LogFiles/
 
 *.log
+
+feature_selection_(old_scripts)/
+
+skfeature_(all)/
