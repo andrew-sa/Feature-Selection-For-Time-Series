@@ -74,6 +74,19 @@ def select(dataset, features_number, clusters_number):
     selected_features_test = indipendent_columns_test.loc[:, names_selected_features]
     app_logger.info('Selected features testset: {0}'.format(selected_features_test.shape), extra = LOGGER_EXTRA_OBJECT)
 
+
+    '''
+    # Pickles for rfd
+    if selected_features_train.shape[0] > 1000:
+        print('Test-set')
+        selected_features_test.to_pickle('../rfd/Pickle_rfd/MCFS/{0}.pkl'.format(dataset))
+    else:
+        print('Train-set')
+        selected_features_train.to_pickle('../rfd/Pickle_rfd/MCFS/{0}.pkl'.format(dataset))
+    exit()
+    '''
+
+
     # Running k-means according to selected features
     test_feature_selection.testFeatureSelectionWithRepeatedKMeans('MCFS', features_number, dataset, 
         selected_features_train.values, selected_features_test.values, clusters_number, known_labels_test)
@@ -82,4 +95,4 @@ def select(dataset, features_number, clusters_number):
 
 
 # Testing
-# select('TwoPatterns', 20, 4)
+#select('TwoPatterns', 10, 4)

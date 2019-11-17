@@ -57,6 +57,19 @@ def select(dataset, features_number, clusters_number):
     selected_features_train = indipendent_columns_train.loc[:, selected_features_names]
     selected_features_test = indipendent_columns_test.loc[:, selected_features_names]
 
+
+    '''
+    # Pickles for rfd
+    if selected_features_train.shape[0] > 1000:
+        print('Test-set')
+        selected_features_test.to_pickle('../rfd/Pickle_rfd/Corr/{0}.pkl'.format(dataset))
+    else:
+        print('Train-set')
+        selected_features_train.to_pickle('../rfd/Pickle_rfd/Corr/{0}.pkl'.format(dataset))
+    exit()
+    '''
+
+
     # Running k-means according to selected features
     test_feature_selection.testFeatureSelectionWithRepeatedKMeans('CORRELATION', features_number, dataset, 
         selected_features_train.values, selected_features_test.values, clusters_number, known_labels_test)
@@ -66,4 +79,4 @@ def select(dataset, features_number, clusters_number):
 
 
 # Testing
-# select("TwoPatterns", 20, 4)
+#select('TwoPatterns', 10, 4)
