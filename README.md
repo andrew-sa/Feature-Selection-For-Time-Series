@@ -17,7 +17,7 @@ We used:
 Run **main.py** specifing as arguments: the dataset's name and the number of feature to select.
   - The result of kmeans' execution (in terms of scores) will be saved into **result.log** that it is contained into **Logs** folder. 
 
-## Similarity Functional Dependency and k-means
+### Similarity Functional Dependency and k-means
 1. Run **similarity_functional_dependency.py**
     - It discovers similarity functional dependency on the teen feature extracted using MCFS and Correlation, for every dataset.
     - The discovered similarity functional dependencies will be shown into **discovered_rfd.log** that it is contained into **Logs** folder.
