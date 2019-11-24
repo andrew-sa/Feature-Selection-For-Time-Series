@@ -2,7 +2,7 @@ import os
 import logging
 
 logging.basicConfig(level = logging.INFO)
-logger = logging.getLogger('kmeans-rfd')
+logger = logging.getLogger('kmeans_rfd')
 logscript_path = os.path.dirname(os.path.abspath(__file__))
 parent_logscript_path = os.path.split(logscript_path)[0]
 pathname = parent_logscript_path + '/LogFiles' + '/kmeans-rfd.log'
