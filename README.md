@@ -15,14 +15,14 @@ We used:
 
 ### Feature selection and k-means
 Run **main.py** specifing, in the order, as arguments: the dataset's name and the number of feature to select.
-  - The result of kmeans' execution (in terms of scores) will be saved into **result.log** that it is contained into **Logs** folder. 
+  - The result of kmeans' execution (in terms of scores) will be saved into **result.log** that it is contained into **LogFiles** folder. 
 
 ### Similarity Functional Dependency and k-means
 1. Run **similarity_functional_dependency.py**
     - It discovers similarity functional dependencies on the ten features extracted using MCFS and Correlation, for every dataset.
-    - The discovered similarity functional dependencies will be shown into **discovered_rfd.log** that it is contained into **Logs** folder.
+    - The discovered similarity functional dependencies will be shown into **discovered_rfd.log** that it is contained into **LogFiles** folder.
 2. Run **clustering_using_rfd.py** specifing, in the order, as arguments:
     - The type of feature selection;
     - The name of the dataset;
     - One or more feature to delete from the initial ten features, according to the similarity functional dependencies that were discovered from the above-mentioned dataset and the above-mentioned feature selection's.
-    - The result of kmeans' execution (in terms of scores) will be saved into **kmeans_rfd.log** that it is contained into **Logs** folder.
+    - The result of kmeans' execution (in terms of scores) will be saved into **kmeans_rfd.log** that it is contained into **LogFiles** folder.
