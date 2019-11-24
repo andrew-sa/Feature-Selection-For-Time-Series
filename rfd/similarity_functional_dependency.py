@@ -12,6 +12,8 @@ import scipy.special as scipy_special
 
 LOGGER_EXTRA_OBJECT = {'caller_absolutepathname': os.path.abspath(__file__)}
 
+discovered_sfd = []
+
 # def mean_absolute_deviation(data):
 #     mean = np.mean(data)
 #     absolute_deviation = 0
@@ -45,8 +47,15 @@ def calculate_epsilon(data):
     
     return epsilon
 
+def is_to_be_pruned(lhs, rhs):
+    for sfd in discovered_sfd:
+        if sfd[0].issubset(lhs) and sfd[1].issuperset(rhs):
+            return True
+    return False
 
 def discovery_one_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs in range(0, len(neighbourhoods)):
         lhs_neighbourhoods = neighbourhoods[lhs]
         if (len(lhs_neighbourhoods) == 0):
@@ -71,10 +80,10 @@ def discovery_one_to_one(neighbourhoods, feature_names):
                                 if result == False:
                                     discovered = False
                         if flag == True and discovered == True:
+                            discovered_sfd.append([set([lhs]), set([rhs])])
                             rfd_logger.info('[DISCOVERED] {0} --> {1}'.format(lhs, rhs))
                             discovered_rfd_logger.info('[DISCOVERED] {0} --> {1}'.format(lhs, rhs))
                             discovered_rfd_logger.info('{0} --> {1}'.format(feature_names[lhs], feature_names[rhs]))
-
 
             '''
             for ts in range(0, len(feature_neighbourhood)):
@@ -89,6 +98,8 @@ def discovery_one_to_one(neighbourhoods, feature_names):
 
 
 def discovery_two_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -99,32 +110,38 @@ def discovery_two_to_one(neighbourhoods, feature_names):
                 for rhs in range(0, len(neighbourhoods)):
                     if rhs != lhs1 and rhs != lhs2:
                     # if rhs == lhs1 and rhs == lhs2: #Testing i,i-->i
-                        rfd_logger.info('[TRYING] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
-                        lhs2_neighbourhoods = neighbourhoods[lhs2]
-                        rhs_neighbourhoods = neighbourhoods[rhs]
-                        if len(lhs2_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                            flag = False
-                            discovered = True
-                            for ts in range(0, len(lhs1_neighbourhoods)):
-                                # ts_neighbourhood_of_lhs = list_operations.intersection_between_two(lhs1_neighbourhoods[ts], lhs2_neighbourhoods[ts])
-                                # ts_neighbourhood_of_rhs = rhs_neighbourhoods[ts]
-                                ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts]))
-                                ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                    flag = True
-                                    # ts_neighbourhood_of_lhs.sort()
-                                    # ts_neighbourhood_of_rhs.sort()
-                                    # equals = np.array_equal(ts_neighbourhood_of_lhs, ts_neighbourhood_of_rhs)
-                                    result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                    if result == False:
-                                        discovered = False
-                            if flag == True and discovered == True:
-                                rfd_logger.info('[DISCOVERED] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
-                                discovered_rfd_logger.info('[DISCOVERED] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
-                                discovered_rfd_logger.info('{0}, {1} --> {2}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[rhs]))
+                        if is_to_be_pruned(set([lhs1, lhs2]), set([rhs])) == False:
+                            rfd_logger.info('[TRYING] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
+                            lhs2_neighbourhoods = neighbourhoods[lhs2]
+                            rhs_neighbourhoods = neighbourhoods[rhs]
+                            if len(lhs2_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                flag = False
+                                discovered = True
+                                for ts in range(0, len(lhs1_neighbourhoods)):
+                                    # ts_neighbourhood_of_lhs = list_operations.intersection_between_two(lhs1_neighbourhoods[ts], lhs2_neighbourhoods[ts])
+                                    # ts_neighbourhood_of_rhs = rhs_neighbourhoods[ts]
+                                    ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts]))
+                                    ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                    if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                        flag = True
+                                        # ts_neighbourhood_of_lhs.sort()
+                                        # ts_neighbourhood_of_rhs.sort()
+                                        # equals = np.array_equal(ts_neighbourhood_of_lhs, ts_neighbourhood_of_rhs)
+                                        result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                        if result == False:
+                                            discovered = False
+                                if flag == True and discovered == True:
+                                    discovered_sfd.append([set([lhs1, lhs2]), set([rhs])])
+                                    rfd_logger.info('[DISCOVERED] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
+                                    discovered_rfd_logger.info('[DISCOVERED] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
+                                    discovered_rfd_logger.info('{0}, {1} --> {2}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[rhs]))
+                        else:
+                            rfd_logger.info('[PRUNED] {0}, {1} --> {2}'.format(lhs1, lhs2, rhs))
 
 
 def discovery_three_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -137,35 +154,41 @@ def discovery_three_to_one(neighbourhoods, feature_names):
                     for rhs in range(0, len(neighbourhoods)):
                         if rhs != lhs1 and rhs != lhs2 and rhs != lhs3:
                         # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3: #Testing i,i,i-->i
-                            rfd_logger.info('[TRYING] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))
-                            lhs2_neighbourhoods = neighbourhoods[lhs2]
-                            lhs3_neighbourhoods = neighbourhoods[lhs3]
-                            rhs_neighbourhoods = neighbourhoods[rhs]
-                            if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                flag = False
-                                discovered = True
-                                for ts in range(0, len(lhs1_neighbourhoods)):
-                                    # ts_neighbourhood_of_lhs = list_operations.intersection_between_three(lhs1_neighbourhoods[ts], lhs2_neighbourhoods[ts], lhs3_neighbourhoods[ts])
-                                    # ts_neighbourhood_of_rhs = rhs_neighbourhoods[ts]
-                                    ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts]))
-                                    ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                    if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                        flag = True
-                                        # ts_neighbourhood_of_lhs.sort()
-                                        # ts_neighbourhood_of_rhs.sort()
-                                        # equals = np.array_equal(ts_neighbourhood_of_lhs, ts_neighbourhood_of_rhs)
-                                        # print(len(ts_neighbourhood_of_lhs))
-                                        # print(len(ts_neighbourhood_of_rhs))
-                                        result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                        if result == False:
-                                            discovered = False
-                                if flag == True and discovered == True:
-                                    rfd_logger.info('[DISCOVERED] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))
-                                    discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))
-                                    discovered_rfd_logger.info('{0}, {1}, {2} --> {3}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[rhs]))
+                            if is_to_be_pruned(set([lhs1, lhs2, lhs3]), set([rhs])) == False:
+                                rfd_logger.info('[TRYING] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))
+                                lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                rhs_neighbourhoods = neighbourhoods[rhs]
+                                if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                    flag = False
+                                    discovered = True
+                                    for ts in range(0, len(lhs1_neighbourhoods)):
+                                        # ts_neighbourhood_of_lhs = list_operations.intersection_between_three(lhs1_neighbourhoods[ts], lhs2_neighbourhoods[ts], lhs3_neighbourhoods[ts])
+                                        # ts_neighbourhood_of_rhs = rhs_neighbourhoods[ts]
+                                        ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts]))
+                                        ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                        if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                            flag = True
+                                            # ts_neighbourhood_of_lhs.sort()
+                                            # ts_neighbourhood_of_rhs.sort()
+                                            # equals = np.array_equal(ts_neighbourhood_of_lhs, ts_neighbourhood_of_rhs)
+                                            # print(len(ts_neighbourhood_of_lhs))
+                                            # print(len(ts_neighbourhood_of_rhs))
+                                            result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                            if result == False:
+                                                discovered = False
+                                    if flag == True and discovered == True:
+                                        discovered_sfd.append([set([lhs1, lhs2, lhs3]), set([rhs])])
+                                        rfd_logger.info('[DISCOVERED] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))
+                                        discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))
+                                        discovered_rfd_logger.info('{0}, {1}, {2} --> {3}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[rhs]))
+                            else:
+                                rfd_logger.info('[PRUNED] {0}, {1}, {2} --> {3}'.format(lhs1, lhs2, lhs3, rhs))                             
 
 
 def discovery_four_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -180,34 +203,40 @@ def discovery_four_to_one(neighbourhoods, feature_names):
                         for rhs in range(0, len(neighbourhoods)):
                             if rhs != lhs1 and rhs != lhs2 and rhs != lhs3 and rhs != lhs4:
                             # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3 and rhs == lhs4:   #Testing i,i,i,i-->i
-                                rfd_logger.info('[TRYING] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
-                                lhs2_neighbourhoods = neighbourhoods[lhs2]
-                                lhs3_neighbourhoods = neighbourhoods[lhs3]
-                                lhs4_neighbourhoods = neighbourhoods[lhs4]
-                                rhs_neighbourhoods = neighbourhoods[rhs]
-                                if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                    flag = False
-                                    discovered = True
-                                    for ts in range(0, len(lhs1_neighbourhoods)):
-                                        # ts_neighbourhood_of_lhs = list_operations.intersection_between_four(lhs1_neighbourhoods[ts], lhs2_neighbourhoods[ts], lhs3_neighbourhoods[ts], lhs4_neighbourhoods[ts])
-                                        # ts_neighbourhood_of_rhs = rhs_neighbourhoods[ts]
-                                        ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts]))
-                                        ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                        if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                            flag = True
-                                            # ts_neighbourhood_of_lhs.sort()
-                                            # ts_neighbourhood_of_rhs.sort()
-                                            # equals = np.array_equal(ts_neighbourhood_of_lhs, ts_neighbourhood_of_rhs)
-                                            result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                            if result == False:
-                                                discovered = False
-                                    if flag == True and discovered == True:
-                                        rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
-                                        discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
-                                        discovered_rfd_logger.info('{0}, {1}, {2}, {3} --> {4}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[rhs]))
+                                if is_to_be_pruned(set([lhs1, lhs2, lhs3, lhs4]), set([rhs])) == False:
+                                    rfd_logger.info('[TRYING] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
+                                    lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                    lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                    lhs4_neighbourhoods = neighbourhoods[lhs4]
+                                    rhs_neighbourhoods = neighbourhoods[rhs]
+                                    if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                        flag = False
+                                        discovered = True
+                                        for ts in range(0, len(lhs1_neighbourhoods)):
+                                            # ts_neighbourhood_of_lhs = list_operations.intersection_between_four(lhs1_neighbourhoods[ts], lhs2_neighbourhoods[ts], lhs3_neighbourhoods[ts], lhs4_neighbourhoods[ts])
+                                            # ts_neighbourhood_of_rhs = rhs_neighbourhoods[ts]
+                                            ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts]))
+                                            ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                            if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                                flag = True
+                                                # ts_neighbourhood_of_lhs.sort()
+                                                # ts_neighbourhood_of_rhs.sort()
+                                                # equals = np.array_equal(ts_neighbourhood_of_lhs, ts_neighbourhood_of_rhs)
+                                                result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                                if result == False:
+                                                    discovered = False
+                                        if flag == True and discovered == True:
+                                            discovered_sfd.append([set([lhs1, lhs2, lhs3, lhs4]), set([rhs])])
+                                            rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
+                                            discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
+                                            discovered_rfd_logger.info('{0}, {1}, {2}, {3} --> {4}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[rhs]))
+                                else:
+                                    rfd_logger.info('[PRUNED] {0}, {1}, {2}, {3} --> {4}'.format(lhs1, lhs2, lhs3, lhs4, rhs))
 
 
 def discovery_five_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -224,30 +253,36 @@ def discovery_five_to_one(neighbourhoods, feature_names):
                             for rhs in range(0, len(neighbourhoods)):
                                 if rhs != lhs1 and rhs != lhs2 and rhs != lhs3 and rhs != lhs4 and rhs != lhs5:
                                 # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3 and rhs == lhs4 and rhs == lhs5:   #Testing i,i,i,i,i-->i
-                                    rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs))
-                                    lhs2_neighbourhoods = neighbourhoods[lhs2]
-                                    lhs3_neighbourhoods = neighbourhoods[lhs3]
-                                    lhs4_neighbourhoods = neighbourhoods[lhs4]
-                                    lhs5_neighbourhoods = neighbourhoods[lhs5]
-                                    rhs_neighbourhoods = neighbourhoods[rhs]
-                                    if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                        flag = False
-                                        discovered = True
-                                        for ts in range(0, len(lhs1_neighbourhoods)):
-                                            ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts]))
-                                            ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                            if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                                flag = True
-                                                result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                                if result == False:
-                                                    discovered = False
-                                        if flag == True and discovered == True:
-                                            rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs)) 
-                                            discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs))
-                                            discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4} --> {5}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[rhs])) 
+                                    if is_to_be_pruned(set([lhs1, lhs2, lhs3, lhs4, lhs5]), set([rhs])) == False:
+                                        rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs))
+                                        lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                        lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                        lhs4_neighbourhoods = neighbourhoods[lhs4]
+                                        lhs5_neighbourhoods = neighbourhoods[lhs5]
+                                        rhs_neighbourhoods = neighbourhoods[rhs]
+                                        if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                            flag = False
+                                            discovered = True
+                                            for ts in range(0, len(lhs1_neighbourhoods)):
+                                                ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts]))
+                                                ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                                if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                                    flag = True
+                                                    result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                                    if result == False:
+                                                        discovered = False
+                                            if flag == True and discovered == True:
+                                                discovered_sfd.append([set([lhs1, lhs2, lhs3, lhs4, lhs5]), set([rhs])])
+                                                rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs)) 
+                                                discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs))
+                                                discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4} --> {5}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[rhs])) 
+                                    else:
+                                        rfd_logger.info('[PRUNED] {0}, {1}, {2}, {3}, {4} --> {5}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, rhs))   
 
 
 def discovery_six_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -266,31 +301,37 @@ def discovery_six_to_one(neighbourhoods, feature_names):
                                 for rhs in range(0, len(neighbourhoods)):
                                     if rhs != lhs1 and rhs != lhs2 and rhs != lhs3 and rhs != lhs4 and rhs != lhs5 and rhs != lhs6:
                                     # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3 and rhs == lhs4 and rhs == lhs5 and rhs == lhs6:   #Testing i,i,i,i,i,i-->i
-                                        rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
-                                        lhs2_neighbourhoods = neighbourhoods[lhs2]
-                                        lhs3_neighbourhoods = neighbourhoods[lhs3]
-                                        lhs4_neighbourhoods = neighbourhoods[lhs4]
-                                        lhs5_neighbourhoods = neighbourhoods[lhs5]
-                                        lhs6_neighbourhoods = neighbourhoods[lhs6]
-                                        rhs_neighbourhoods = neighbourhoods[rhs]
-                                        if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                            flag = False
-                                            discovered = True
-                                            for ts in range(0, len(lhs1_neighbourhoods)):
-                                                ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts]))
-                                                ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                                if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                                    flag = True
-                                                    result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                                    if result == False:
-                                                        discovered = False
-                                            if flag == True and discovered == True:
-                                                rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
-                                                discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
-                                                discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[rhs]))
+                                        if is_to_be_pruned(set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6]), set([rhs])) == False:
+                                            rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
+                                            lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                            lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                            lhs4_neighbourhoods = neighbourhoods[lhs4]
+                                            lhs5_neighbourhoods = neighbourhoods[lhs5]
+                                            lhs6_neighbourhoods = neighbourhoods[lhs6]
+                                            rhs_neighbourhoods = neighbourhoods[rhs]
+                                            if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                                flag = False
+                                                discovered = True
+                                                for ts in range(0, len(lhs1_neighbourhoods)):
+                                                    ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts]))
+                                                    ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                                    if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                                        flag = True
+                                                        result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                                        if result == False:
+                                                            discovered = False
+                                                if flag == True and discovered == True:
+                                                    discovered_sfd.append([set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6]), set([rhs])])
+                                                    rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
+                                                    discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
+                                                    discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[rhs]))
+                                        else:
+                                            rfd_logger.info('[PRUNED] {0}, {1}, {2}, {3}, {4}, {5} --> {6}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, rhs))
 
 
 def discovery_seven_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -311,32 +352,39 @@ def discovery_seven_to_one(neighbourhoods, feature_names):
                                     for rhs in range(0, len(neighbourhoods)):
                                         if rhs != lhs1 and rhs != lhs2 and rhs != lhs3 and rhs != lhs4 and rhs != lhs5 and rhs != lhs6 and rhs != lhs7:
                                         # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3 and rhs == lhs4 and rhs == lhs5 and rhs == lhs6 and rhs == lhs7:   #Testing i,i,i,i,i,i,i-->i
-                                            rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
-                                            lhs2_neighbourhoods = neighbourhoods[lhs2]
-                                            lhs3_neighbourhoods = neighbourhoods[lhs3]
-                                            lhs4_neighbourhoods = neighbourhoods[lhs4]
-                                            lhs5_neighbourhoods = neighbourhoods[lhs5]
-                                            lhs6_neighbourhoods = neighbourhoods[lhs6]
-                                            lhs7_neighbourhoods = neighbourhoods[lhs7]
-                                            rhs_neighbourhoods = neighbourhoods[rhs]
-                                            if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(lhs7_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                                flag = False
-                                                discovered = True
-                                                for ts in range(0, len(lhs1_neighbourhoods)):
-                                                    ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts])).intersection(set(lhs7_neighbourhoods[ts]))
-                                                    ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                                    if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                                        flag = True
-                                                        result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                                        if result == False:
-                                                            discovered = False
-                                                if flag == True and discovered == True:
-                                                    rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
-                                                    discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
-                                                    discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[lhs7], feature_names[rhs]))
+                                            if is_to_be_pruned(set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7]), set([rhs])) == False:
+                                                rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
+                                                lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                                lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                                lhs4_neighbourhoods = neighbourhoods[lhs4]
+                                                lhs5_neighbourhoods = neighbourhoods[lhs5]
+                                                lhs6_neighbourhoods = neighbourhoods[lhs6]
+                                                lhs7_neighbourhoods = neighbourhoods[lhs7]
+                                                rhs_neighbourhoods = neighbourhoods[rhs]
+                                                if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(lhs7_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                                    flag = False
+                                                    discovered = True
+                                                    for ts in range(0, len(lhs1_neighbourhoods)):
+                                                        ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts])).intersection(set(lhs7_neighbourhoods[ts]))
+                                                        ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                                        if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                                            flag = True
+                                                            result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                                            if result == False:
+                                                                discovered = False
+                                                    if flag == True and discovered == True:
+                                                        discovered_sfd.append([set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7]), set([rhs])])
+                                                        rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
+                                                        discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
+                                                        discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[lhs7], feature_names[rhs]))
+                                            else:
+                                                rfd_logger.info('[PRUNED] {0}, {1}, {2}, {3}, {4}, {5}, {6} --> {7}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, rhs))
 
 
 def discovery_eight_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -359,33 +407,39 @@ def discovery_eight_to_one(neighbourhoods, feature_names):
                                         for rhs in range(0, len(neighbourhoods)):
                                             if rhs != lhs1 and rhs != lhs2 and rhs != lhs3 and rhs != lhs4 and rhs != lhs5 and rhs != lhs6 and rhs != lhs7 and rhs != lhs8:
                                             # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3 and rhs == lhs4 and rhs == lhs5 and rhs == lhs6 and rhs == lhs7 and rhs == lhs8:   #Testing i,i,i,i,i,i,i,i-->i
-                                                rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
-                                                lhs2_neighbourhoods = neighbourhoods[lhs2]
-                                                lhs3_neighbourhoods = neighbourhoods[lhs3]
-                                                lhs4_neighbourhoods = neighbourhoods[lhs4]
-                                                lhs5_neighbourhoods = neighbourhoods[lhs5]
-                                                lhs6_neighbourhoods = neighbourhoods[lhs6]
-                                                lhs7_neighbourhoods = neighbourhoods[lhs7]
-                                                lhs8_neighbourhoods = neighbourhoods[lhs8]
-                                                rhs_neighbourhoods = neighbourhoods[rhs]
-                                                if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(lhs7_neighbourhoods) > 0 and len(lhs8_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                                    flag = False
-                                                    discovered = True
-                                                    for ts in range(0, len(lhs1_neighbourhoods)):
-                                                        ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts])).intersection(set(lhs7_neighbourhoods[ts])).intersection(set(lhs8_neighbourhoods[ts]))
-                                                        ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                                        if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                                            flag = True
-                                                            result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                                            if result == False:
-                                                                discovered = False
-                                                    if flag == True and discovered == True:
-                                                        rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
-                                                        discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
-                                                        discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[lhs7], feature_names[lhs8], feature_names[rhs]))
+                                                if is_to_be_pruned(set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8]), set([rhs])) == False:                                               
+                                                    rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
+                                                    lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                                    lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                                    lhs4_neighbourhoods = neighbourhoods[lhs4]
+                                                    lhs5_neighbourhoods = neighbourhoods[lhs5]
+                                                    lhs6_neighbourhoods = neighbourhoods[lhs6]
+                                                    lhs7_neighbourhoods = neighbourhoods[lhs7]
+                                                    lhs8_neighbourhoods = neighbourhoods[lhs8]
+                                                    rhs_neighbourhoods = neighbourhoods[rhs]
+                                                    if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(lhs7_neighbourhoods) > 0 and len(lhs8_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                                        flag = False
+                                                        discovered = True
+                                                        for ts in range(0, len(lhs1_neighbourhoods)):
+                                                            ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts])).intersection(set(lhs7_neighbourhoods[ts])).intersection(set(lhs8_neighbourhoods[ts]))
+                                                            ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                                            if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                                                flag = True
+                                                                result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                                                if result == False:
+                                                                    discovered = False
+                                                        if flag == True and discovered == True:
+                                                            discovered_sfd.append([set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8]), set([rhs])])
+                                                            rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
+                                                            discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
+                                                            discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[lhs7], feature_names[lhs8], feature_names[rhs]))
+                                                else:
+                                                    rfd_logger.info('[PRUNED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7} --> {8}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, rhs))
 
 
 def discovery_nine_to_one(neighbourhoods, feature_names):
+    global discovered_sfd
+
     for lhs1 in range(0, len(neighbourhoods)):
         lhs1_neighbourhoods = neighbourhoods[lhs1]
         if (len(lhs1_neighbourhoods) == 0):
@@ -410,31 +464,35 @@ def discovery_nine_to_one(neighbourhoods, feature_names):
                                             for rhs in range(0, len(neighbourhoods)):
                                                 if rhs != lhs1 and rhs != lhs2 and rhs != lhs3 and rhs != lhs4 and rhs != lhs5 and rhs != lhs6 and rhs != lhs7 and rhs != lhs8 and rhs != lhs9:
                                                 # if rhs == lhs1 and rhs == lhs2 and rhs == lhs3 and rhs == lhs4 and rhs == lhs5 and rhs == lhs6 and rhs == lhs7 and rhs == lhs8 and rhs == lhs9:   #Testing i,i,i,i,i,i,i,i,i-->i
-                                                    rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
-                                                    lhs2_neighbourhoods = neighbourhoods[lhs2]
-                                                    lhs3_neighbourhoods = neighbourhoods[lhs3]
-                                                    lhs4_neighbourhoods = neighbourhoods[lhs4]
-                                                    lhs5_neighbourhoods = neighbourhoods[lhs5]
-                                                    lhs6_neighbourhoods = neighbourhoods[lhs6]
-                                                    lhs7_neighbourhoods = neighbourhoods[lhs7]
-                                                    lhs8_neighbourhoods = neighbourhoods[lhs8]
-                                                    lhs9_neighbourhoods = neighbourhoods[lhs9]
-                                                    rhs_neighbourhoods = neighbourhoods[rhs]
-                                                    if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(lhs7_neighbourhoods) > 0 and len(lhs8_neighbourhoods) > 0 and len(lhs9_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
-                                                        flag = False
-                                                        discovered = True
-                                                        for ts in range(0, len(lhs1_neighbourhoods)):
-                                                            ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts])).intersection(set(lhs7_neighbourhoods[ts])).intersection(set(lhs8_neighbourhoods[ts])).intersection(set(lhs9_neighbourhoods[ts]))
-                                                            ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
-                                                            if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
-                                                                flag = True
-                                                                result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
-                                                                if result == False:
-                                                                    discovered = False
-                                                        if flag == True and discovered == True:
-                                                            rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
-                                                            discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
-                                                            discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[lhs7], feature_names[lhs8], feature_names[lhs9], feature_names[rhs]))
+                                                    if is_to_be_pruned(set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9]), set([rhs])) == False:                                                                                                   
+                                                        rfd_logger.info('[TRYING] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
+                                                        lhs2_neighbourhoods = neighbourhoods[lhs2]
+                                                        lhs3_neighbourhoods = neighbourhoods[lhs3]
+                                                        lhs4_neighbourhoods = neighbourhoods[lhs4]
+                                                        lhs5_neighbourhoods = neighbourhoods[lhs5]
+                                                        lhs6_neighbourhoods = neighbourhoods[lhs6]
+                                                        lhs7_neighbourhoods = neighbourhoods[lhs7]
+                                                        lhs8_neighbourhoods = neighbourhoods[lhs8]
+                                                        lhs9_neighbourhoods = neighbourhoods[lhs9]
+                                                        rhs_neighbourhoods = neighbourhoods[rhs]
+                                                        if len(lhs2_neighbourhoods) > 0 and len(lhs3_neighbourhoods) > 0 and len(lhs4_neighbourhoods) > 0 and len(lhs5_neighbourhoods) > 0 and len(lhs6_neighbourhoods) > 0 and len(lhs7_neighbourhoods) > 0 and len(lhs8_neighbourhoods) > 0 and len(lhs9_neighbourhoods) > 0 and len(rhs_neighbourhoods) > 0:
+                                                            flag = False
+                                                            discovered = True
+                                                            for ts in range(0, len(lhs1_neighbourhoods)):
+                                                                ts_neighbourhood_of_lhs = set(lhs1_neighbourhoods[ts]).intersection(set(lhs2_neighbourhoods[ts])).intersection(set(lhs3_neighbourhoods[ts])).intersection(set(lhs4_neighbourhoods[ts])).intersection(set(lhs5_neighbourhoods[ts])).intersection(set(lhs6_neighbourhoods[ts])).intersection(set(lhs7_neighbourhoods[ts])).intersection(set(lhs8_neighbourhoods[ts])).intersection(set(lhs9_neighbourhoods[ts]))
+                                                                ts_neighbourhood_of_rhs = set(rhs_neighbourhoods[ts])
+                                                                if (len(ts_neighbourhood_of_lhs) > 0 and len(ts_neighbourhood_of_rhs) > 0):
+                                                                    flag = True
+                                                                    result = ts_neighbourhood_of_rhs.issuperset(ts_neighbourhood_of_lhs)
+                                                                    if result == False:
+                                                                        discovered = False
+                                                            if flag == True and discovered == True:
+                                                                discovered_sfd.append([set([lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9]), set([rhs])])
+                                                                rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
+                                                                discovered_rfd_logger.info('[DISCOVERED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
+                                                                discovered_rfd_logger.info('{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(feature_names[lhs1], feature_names[lhs2], feature_names[lhs3], feature_names[lhs4], feature_names[lhs5], feature_names[lhs6], feature_names[lhs7], feature_names[lhs8], feature_names[lhs9], feature_names[rhs]))
+                                                    else:
+                                                        rfd_logger.info('[PRUNED] {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} --> {9}'.format(lhs1, lhs2, lhs3, lhs4, lhs5, lhs6, lhs7, lhs8, lhs9, rhs))
 
 
 def sfd(df):
@@ -494,22 +552,35 @@ def main():
     'TwoPatterns' 
     ]
 
+    #Testing
+    # datasets = [
+    # 'FordA'
+    # ]
+
     for dataset in datasets:
 
         mcfs_df = pd.read_pickle('Pickle_rfd/MCFS/{0}.pkl'.format(dataset))
         corr_df = pd.read_pickle('Pickle_rfd/Corr/{0}.pkl'.format(dataset))
 
+        global discovered_sfd
+        discovered_sfd = []
+        
         rfd_logger.info('[STARTED] {0} on MCFS features'.format(dataset))
         discovered_rfd_logger.info('')
         discovered_rfd_logger.info('')
         discovered_rfd_logger.info('[STARTED] {0} on MCFS features'.format(dataset))
+        # rfd_logger.info('{0}'.format(len(discovered_sfd))) #Testing
         sfd(mcfs_df)
+        # rfd_logger.info('{0}'.format(len(discovered_sfd))) #Testing
         rfd_logger.info('[ENDED] {0} on MCFS features'.format(dataset))
         discovered_rfd_logger.info('[ENDED] {0} on MCFS features'.format(dataset))
         discovered_rfd_logger.info('')
+        discovered_sfd = []
         rfd_logger.info('[STARTED] {0} on CORRELATION features'.format(dataset))
         discovered_rfd_logger.info('[STARTED] {0} on CORRELATION features'.format(dataset))
+        # rfd_logger.info('{0}'.format(len(discovered_sfd))) #Testing
         sfd(corr_df)
+        # rfd_logger.info('{0}'.format(len(discovered_sfd))) #Testing
         rfd_logger.info('[ENDED] {0} on CORRELATION features'.format(dataset))
         discovered_rfd_logger.info('[ENDED] {0} on CORRELATION features'.format(dataset))
         discovered_rfd_logger.info('')
